@@ -1,8 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 
 export function CallInterface() {
   const [phoneNumber, setPhoneNumber] = useState('')
@@ -31,14 +29,19 @@ export function CallInterface() {
 
   return (
     <div className="flex flex-col space-y-4">
-      <Input
+      <input
         type="tel"
         placeholder="Enter phone number (e.g., +1234567890)"
         value={phoneNumber}
         onChange={(e) => setPhoneNumber(e.target.value)}
-        className="w-full"
+        className="w-full px-3 py-2 border rounded"
       />
-      <Button onClick={handleCall} className="w-full">Make Call</Button>
+      <button 
+        onClick={handleCall} 
+        className="w-full px-4 py-2 text-white bg-blue-500 rounded hover:bg-blue-600"
+      >
+        Make Call
+      </button>
       {status && <p className="text-sm text-gray-600">{status}</p>}
     </div>
   )
