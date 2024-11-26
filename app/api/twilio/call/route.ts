@@ -12,9 +12,14 @@ const client = twilio(accountSid, authToken);
 export async function POST(req: Request) {
   const { phoneNumber } = await req.json();
   
+  // Use VERCEL_URL if available, otherwise fallback to a local development URL
+  const baseUrl = process.env.VERCEL_URL 
+    ? `https://${process.env.VERCEL_URL}` 
+    : 'http://localhost:3000';
+
   try {
     const call = await client.calls.create({
-      url: `${process.env.VERCEL_URL}/api/twilio/voice`,
+      url: `${baseUrl}/api/twilio/voice`,
       to: phoneNumber,
       from: process.env.TWILIO_PHONE_NUMBER
     });
