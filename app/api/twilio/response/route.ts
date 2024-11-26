@@ -1,9 +1,5 @@
 import twilio from 'twilio'
-import { OpenAIAssistant } from '../../../lib/assistant'
-
-// rest of the code
-
-
+import { OpenAIAssistant } from '@/lib/assistant'
 
 const VoiceResponse = twilio.twiml.VoiceResponse
 
