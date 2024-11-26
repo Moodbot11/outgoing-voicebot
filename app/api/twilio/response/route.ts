@@ -1,14 +1,14 @@
-import twilio from 'twilio'
-import OpenAI from 'openai'
+import twilio from 'twilio';
+import OpenAI from 'openai';
 
-const VoiceResponse = twilio.twiml.VoiceResponse
-const openai = new OpenAI(process.env.OPENAI_API_KEY)
+const VoiceResponse = twilio.twiml.VoiceResponse;
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function POST(req: Request) {
-  const formData = await req.formData()
-  const speechResult = formData.get('SpeechResult')?.toString() || ''
+  const formData = await req.formData();
+  const speechResult = formData.get('SpeechResult')?.toString() || '';
   
-  const twiml = new VoiceResponse()
+  const twiml = new VoiceResponse();
   
   try {
     // Get response from OpenAI
@@ -20,7 +20,7 @@ export async function POST(req: Request) {
     const response = completion.choices[0].message.content || 'I apologize, but I don\'t have a response for that.';
 
     // Convert the assistant's response to speech
-    twiml.say({ voice: 'Polly.Amy' }, response)
+    twiml.say({ voice: 'Polly.Amy' }, response);
     
     // Continue the conversation
     twiml.gather({
@@ -29,15 +29,15 @@ export async function POST(req: Request) {
       method: 'POST',
       speechTimeout: 'auto',
       language: 'en-US'
-    })
+    });
 
   } catch (error) {
-    console.error('Error:', error)
-    twiml.say({ voice: 'Polly.Amy' }, 'I apologize, but I encountered an error. Please try again later.')
+    console.error('Error:', error);
+    twiml.say({ voice: 'Polly.Amy' }, 'I apologize, but I encountered an error. Please try again later.');
   }
 
   return new Response(twiml.toString(), {
     headers: { 'Content-Type': 'application/xml' }
-  })
+  });
 }
 
