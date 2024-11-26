@@ -17,7 +17,7 @@ export async function POST(req: Request) {
       messages: [{ role: "user", content: speechResult }],
     });
 
-    const response = completion.choices[0].message.content || 'I apologize, but I don't have a response for that.';
+    const response = completion.choices[0].message.content || 'I apologize, but I don\'t have a response for that.';
 
     // Convert the assistant's response to speech
     twiml.say({ voice: 'Polly.Amy' }, response)
