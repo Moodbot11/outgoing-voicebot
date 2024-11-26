@@ -10,7 +10,7 @@ export async function POST(req: Request) {
   
   // Gather speech input from the user
   twiml.gather({
-    input: 'speech',
+    input: ['speech'],  // Changed from 'speech' to ['speech']
     action: `/api/twilio/response`,
     method: 'POST',
     speechTimeout: 'auto',

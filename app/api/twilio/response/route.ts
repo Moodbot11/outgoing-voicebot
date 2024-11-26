@@ -24,7 +24,7 @@ export async function POST(req: Request) {
     
     // Continue the conversation
     twiml.gather({
-      input: 'speech',
+      input: ['speech'],  // Changed from 'speech' to ['speech']
       action: `/api/twilio/response`,
       method: 'POST',
       speechTimeout: 'auto',
