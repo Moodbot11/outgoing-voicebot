@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { OpenAIAssistant } from '../../../lib/assistant'
 
 const openai = new OpenAI(process.env.OPENAI_API_KEY!);
 
