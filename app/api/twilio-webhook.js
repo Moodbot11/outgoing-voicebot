@@ -1,46 +1,27 @@
-import { createHmac } from 'crypto';
-import { twiml } from 'twilio';
-import { Twilio } from 'twilio';
+// api/twilio-webhook.js
+import { VoiceResponse } from 'twilio';
+import OpenAI from 'openai';
 
-// Your Twilio credentials from environment variables
-const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
-const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
-// Create a Twilio client
-const twilioClient = new Twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
-
-// Function to verify Twilio requests
-function isTwilioRequest(req) {
-  const twilioSignature = req.headers['x-twilio-signature'];
-  const url = `https://${req.headers.host}${req.url}`;
-  const params = req.body;
-
-  const hmac = createHmac('sha1', TWILIO_AUTH_TOKEN);
-  hmac.update(url + params);
-  const signature = hmac.digest('base64');
-
-  return twilioSignature === signature;
-}
-
-// Vercel serverless function to handle Twilio requests
 export default async function handler(req, res) {
   if (req.method === 'POST') {
-    // Verify the request
-    if (!isTwilioRequest(req)) {
-      return res.status(403).send('Forbidden');
-    }
+    const callerInput = req.body.SpeechResult || 'Hello, how can I assist you today?';
 
-    // Handle incoming SMS or voice requests
-    const twilioMsg = req.body;
-    console.log('Received Message:', twilioMsg);
+    const openAiResponse = await openai.completions.create({
+      model: "gpt-4",
+      prompt: callerInput,
+    });
 
-    // Respond to the incoming request with a message
-    const twimlResponse = new twiml.MessagingResponse();
-    twimlResponse.message('Thank you for your message!');
+    const aiTextResponse = openAiResponse.choices[0].text.trim();
 
-    // Send the response back to Twilio
-    res.writeHead(200, { 'Content-Type': 'text/xml' });
-    res.end(twimlResponse.toString());
+    const twiml = new VoiceResponse();
+    twiml.say(aiTextResponse);
+
+    res.setHeader('Content-Type', 'text/xml');
+    res.status(200).send(twiml.toString());
   } else {
     res.status(405).send('Method Not Allowed');
   }
