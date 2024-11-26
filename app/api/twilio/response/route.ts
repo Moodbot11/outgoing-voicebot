@@ -1,26 +1,23 @@
 import twilio from 'twilio'
-import { OpenAIAssistant } from '@/lib/assistant'
+import OpenAI from 'openai'
 
 const VoiceResponse = twilio.twiml.VoiceResponse
+const openai = new OpenAI(process.env.OPENAI_API_KEY)
 
 export async function POST(req: Request) {
   const formData = await req.formData()
   const speechResult = formData.get('SpeechResult')?.toString() || ''
-  const threadId = new URL(req.url).searchParams.get('threadId')
   
-  if (!threadId) {
-    throw new Error('Thread ID is required')
-  }
-
   const twiml = new VoiceResponse()
   
   try {
-    // Get response from your existing Assistant
-    const assistant = new OpenAIAssistant(process.env.OPENAI_API_KEY!)
-    const response = await assistant.sendMessage({
-      threadId,
-      content: speechResult
-    })
+    // Get response from OpenAI
+    const completion = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: speechResult }],
+    });
+
+    const response = completion.choices[0].message.content || 'I apologize, but I don't have a response for that.';
 
     // Convert the assistant's response to speech
     twiml.say({ voice: 'Polly.Amy' }, response)
@@ -28,7 +25,7 @@ export async function POST(req: Request) {
     // Continue the conversation
     twiml.gather({
       input: 'speech',
-      action: `/api/twilio/response?threadId=${threadId}`,
+      action: `/api/twilio/response`,
       method: 'POST',
       speechTimeout: 'auto',
       language: 'en-US'
