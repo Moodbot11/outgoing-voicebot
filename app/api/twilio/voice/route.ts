@@ -1,6 +1,6 @@
 import twilio from 'twilio';
 import OpenAI from 'openai';
-import { textToSpeech, speechToText } from '@/lib/openai-utils';
+import { textToSpeech, speechToText } from '@/utils/openai-utils';
 
 const VoiceResponse = twilio.twiml.VoiceResponse;
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
