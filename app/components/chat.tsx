@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import styles from '../page.module.css';
 import { Mic, MicOff } from 'lucide-react';
-import { speechToText } from "../../utils/openai-utils";
+import { speechToText } from "../utils/openai-utils";
 
 const Message = ({ role, text }) => {
   return (
