@@ -5,24 +5,35 @@ import styles from "./page.module.css";
 import { Mic, MicOff, Send } from 'lucide-react';
 import OpenAI from "openai";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
 const Home = () => {
   const [messages, setMessages] = useState([]);
   const [inputDisabled, setInputDisabled] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [userInput, setUserInput] = useState("");
+  const [error, setError] = useState(null);
   const chatContainerRef = useRef(null);
   const threadRef = useRef(null);
+  const openaiRef = useRef(null);
 
   useEffect(() => {
-    const initializeThread = async () => {
-      const thread = await openai.beta.threads.create();
-      threadRef.current = thread;
-      console.log("Thread created:", thread.id);
+    const initializeOpenAI = async () => {
+      try {
+        const response = await fetch('/api/get-openai-key');
+        if (!response.ok) {
+          throw new Error('Failed to fetch OpenAI API key');
+        }
+        const { apiKey } = await response.json();
+        openaiRef.current = new OpenAI({ apiKey });
+        const thread = await openaiRef.current.beta.threads.create();
+        threadRef.current = thread;
+        console.log("Thread created:", thread.id);
+      } catch (error) {
+        console.error('Error initializing OpenAI:', error);
+        setError('Failed to initialize chat. Please try again later.');
+      }
     };
 
-    initializeThread();
+    initializeOpenAI();
   }, []);
 
   const handleSubmit = async (e) => {
@@ -34,31 +45,36 @@ const Home = () => {
   };
 
   const processUserInput = async (input) => {
+    if (!openaiRef.current || !threadRef.current) {
+      setError('Chat is not initialized. Please try again later.');
+      return;
+    }
+
     setInputDisabled(true);
     const userMessage = { role: "user", content: input };
     setMessages(prevMessages => [...prevMessages, userMessage]);
 
     try {
       // Add the user's message to the thread
-      await openai.beta.threads.messages.create(threadRef.current.id, {
+      await openaiRef.current.beta.threads.messages.create(threadRef.current.id, {
         role: "user",
         content: input
       });
 
       // Run the assistant
-      const run = await openai.beta.threads.runs.create(threadRef.current.id, {
-        assistant_id: process.env.OPENAI_ASSISTANT_ID
+      const run = await openaiRef.current.beta.threads.runs.create(threadRef.current.id, {
+        assistant_id: process.env.NEXT_PUBLIC_OPENAI_ASSISTANT_ID
       });
 
       // Wait for the run to complete
-      let runStatus = await openai.beta.threads.runs.retrieve(threadRef.current.id, run.id);
+      let runStatus = await openaiRef.current.beta.threads.runs.retrieve(threadRef.current.id, run.id);
       while (runStatus.status !== "completed") {
         await new Promise(resolve => setTimeout(resolve, 1000));
-        runStatus = await openai.beta.threads.runs.retrieve(threadRef.current.id, run.id);
+        runStatus = await openaiRef.current.beta.threads.runs.retrieve(threadRef.current.id, run.id);
       }
 
       // Retrieve the assistant's messages
-      const messages = await openai.beta.threads.messages.list(threadRef.current.id);
+      const messages = await openaiRef.current.beta.threads.messages.list(threadRef.current.id);
       const assistantMessage = messages.data.find(message => message.role === "assistant");
 
       if (assistantMessage) {
@@ -96,7 +112,7 @@ const Home = () => {
         const audioFile = new File([audioBlob], "audio.wav", { type: 'audio/wav' });
 
         try {
-          const transcription = await openai.audio.transcriptions.create({
+          const transcription = await openaiRef.current.audio.transcriptions.create({
             file: audioFile,
             model: "whisper-1",
           });
@@ -124,6 +140,10 @@ const Home = () => {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   };
+
+  if (error) {
+    return <div className={styles.error}>{error}</div>;
+  }
 
   return (
     <main className={styles.main}>
@@ -168,3 +188,4 @@ const Home = () => {
 };
 
 export default Home;
+

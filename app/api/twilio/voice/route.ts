@@ -3,26 +3,26 @@ import OpenAI from 'openai';
 import { textToSpeech, speechToText } from '../../../utils/openai-utils';
 
 const VoiceResponse = twilio.twiml.VoiceResponse;
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function POST(req: Request) {
   const twiml = new VoiceResponse();
   const url = new URL(req.url);
   let threadId = url.searchParams.get('threadId');
-  const assistantId = process.env.OPENAI_ASSISTANT_ID;
 
-  console.log('Request received:', { threadId, url: req.url });
-
-  if (!process.env.OPENAI_API_KEY || !assistantId) {
-    console.error('Missing OpenAI credentials:', {
-      apiKey: process.env.OPENAI_API_KEY ? 'Set' : 'Missing',
-      assistantId: assistantId ? 'Set' : 'Missing'
-    });
+  // Fetch OpenAI credentials
+  const credentialsResponse = await fetch(`${process.env.VERCEL_URL}/api/get-openai-key`);
+  if (!credentialsResponse.ok) {
+    console.error('Failed to fetch OpenAI credentials');
     twiml.say({ voice: 'Polly.Amy' }, 'I apologize, but there was an error with the system configuration. Please try again later.');
     return new Response(twiml.toString(), {
       headers: { 'Content-Type': 'application/xml' }
     });
   }
+
+  const { apiKey, assistantId } = await credentialsResponse.json();
+  const openai = new OpenAI({ apiKey });
+
+  console.log('Request received:', { threadId, url: req.url });
 
   const formData = await req.formData();
   const recordingUrl = formData.get('RecordingUrl')?.toString();
@@ -96,7 +96,7 @@ export async function POST(req: Request) {
     }
 
     twiml.record({
-      action: `https://outgoing-voicebot.vercel.app/api/twilio/voice?threadId=${threadId}`,
+      action: `https://${process.env.VERCEL_URL}/api/twilio/voice?threadId=${threadId}`,
       method: 'POST',
       maxLength: 10,
       playBeep: true,
