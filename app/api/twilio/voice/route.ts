@@ -43,7 +43,10 @@ export async function POST(req: Request) {
         .filter(message => message.role === 'assistant')
         .pop();
 
-      const response = lastMessage?.content[0].text.value || 'I apologize, but I don\'t have a response for that.';
+      let response = 'I apologize, but I don\'t have a response for that.';
+      if (lastMessage && lastMessage.content[0].type === 'text') {
+        response = lastMessage.content[0].text.value;
+      }
 
       // Convert the assistant's response to speech
       twiml.say({ voice: 'Polly.Amy' }, response);
