@@ -13,9 +13,16 @@ const Home = () => {
   const [isListening, setIsListening] = useState(false);
   const [userInput, setUserInput] = useState("");
   const chatContainerRef = useRef(null);
+  const threadRef = useRef(null);
 
   useEffect(() => {
-    console.log("Component mounted");
+    const initializeThread = async () => {
+      const thread = await openai.beta.threads.create();
+      threadRef.current = thread;
+      console.log("Thread created:", thread.id);
+    };
+
+    initializeThread();
   }, []);
 
   const handleSubmit = async (e) => {
@@ -32,13 +39,31 @@ const Home = () => {
     setMessages(prevMessages => [...prevMessages, userMessage]);
 
     try {
-      const completion = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo",
-        messages: [...messages, userMessage],
+      // Add the user's message to the thread
+      await openai.beta.threads.messages.create(threadRef.current.id, {
+        role: "user",
+        content: input
       });
 
-      const assistantMessage = completion.choices[0].message;
-      setMessages(prevMessages => [...prevMessages, assistantMessage]);
+      // Run the assistant
+      const run = await openai.beta.threads.runs.create(threadRef.current.id, {
+        assistant_id: process.env.OPENAI_ASSISTANT_ID
+      });
+
+      // Wait for the run to complete
+      let runStatus = await openai.beta.threads.runs.retrieve(threadRef.current.id, run.id);
+      while (runStatus.status !== "completed") {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        runStatus = await openai.beta.threads.runs.retrieve(threadRef.current.id, run.id);
+      }
+
+      // Retrieve the assistant's messages
+      const messages = await openai.beta.threads.messages.list(threadRef.current.id);
+      const assistantMessage = messages.data.find(message => message.role === "assistant");
+
+      if (assistantMessage && assistantMessage.content[0].type === 'text') {
+        setMessages(prevMessages => [...prevMessages, { role: "assistant", content: assistantMessage.content[0].text.value }]);
+      }
     } catch (error) {
       console.error('Error:', error);
       setMessages(prevMessages => [...prevMessages, { role: "assistant", content: "Sorry, there was an error processing your request." }]);
@@ -61,16 +86,19 @@ const Home = () => {
 
       mediaRecorder.addEventListener("stop", async () => {
         const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-        const formData = new FormData();
-        formData.append("file", audioBlob, "audio.wav");
-        formData.append("model", "whisper-1");
+        const audioFile = new File([audioBlob], "audio.wav", { type: 'audio/wav' });
 
-        const transcription = await openai.audio.transcriptions.create({
-          file: audioBlob,
-          model: "whisper-1",
-        });
+        try {
+          const transcription = await openai.audio.transcriptions.create({
+            file: audioFile,
+            model: "whisper-1",
+          });
 
-        await processUserInput(transcription.text);
+          await processUserInput(transcription.text);
+        } catch (error) {
+          console.error("Error transcribing audio:", error);
+          setMessages(prevMessages => [...prevMessages, { role: "assistant", content: "Sorry, there was an error processing your voice input." }]);
+        }
       });
 
       mediaRecorder.start();
@@ -78,6 +106,7 @@ const Home = () => {
       mediaRecorder.stop();
     } catch (error) {
       console.error("Error recording audio:", error);
+      setMessages(prevMessages => [...prevMessages, { role: "assistant", content: "Sorry, there was an error with the voice recording." }]);
     } finally {
       setIsListening(false);
     }
