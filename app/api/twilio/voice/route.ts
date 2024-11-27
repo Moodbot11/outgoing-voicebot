@@ -46,9 +46,16 @@ export async function POST(req: Request) {
 
       console.log('Waiting for run to complete');
       let runStatus = await openai.beta.threads.runs.retrieve(threadId, run.id);
-      while (runStatus.status !== 'completed') {
+      let attempts = 0;
+      const maxAttempts = 10;
+      while (runStatus.status !== 'completed' && attempts < maxAttempts) {
         await new Promise(resolve => setTimeout(resolve, 1000));
         runStatus = await openai.beta.threads.runs.retrieve(threadId, run.id);
+        attempts++;
+      }
+
+      if (runStatus.status !== 'completed') {
+        throw new Error('Assistant run timed out');
       }
 
       console.log('Retrieving assistant response');
