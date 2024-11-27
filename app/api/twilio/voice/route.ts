@@ -31,9 +31,8 @@ export async function POST(req: Request) {
       const thread = await openai.beta.threads.create();
       threadId = thread.id;
       console.log('Created new thread:', threadId);
-    }
-
-    if (speechResult) {
+      twiml.say({ voice: 'Polly.Amy' }, 'Hello! How can I help you today?');
+    } else if (speechResult) {
       console.log('Sending message to thread:', threadId);
       await openai.beta.threads.messages.create(threadId, {
         role: 'user',
@@ -66,7 +65,7 @@ export async function POST(req: Request) {
       console.log('Assistant response:', response);
       twiml.say({ voice: 'Polly.Amy' }, response);
     } else {
-      twiml.say({ voice: 'Polly.Amy' }, 'Hello! How can I help you today?');
+      twiml.say({ voice: 'Polly.Amy' }, 'I didn\'t catch that. Could you please repeat?');
     }
 
     twiml.gather({
