@@ -8,7 +8,7 @@ export async function POST(req: Request) {
   const twiml = new VoiceResponse();
   const url = new URL(req.url);
   let threadId = url.searchParams.get('threadId');
-  const assistantId = process.env.ASSISTANT_ID;
+  const assistantId = process.env.OPENAI_ASSISTANT_ID;
 
   if (!process.env.OPENAI_API_KEY || !assistantId) {
     console.error('Missing OpenAI credentials:', {

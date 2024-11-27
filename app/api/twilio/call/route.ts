@@ -9,7 +9,7 @@ export async function POST(req: Request) {
     const authToken = process.env.TWILIO_AUTH_TOKEN;
     const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
     const openaiApiKey = process.env.OPENAI_API_KEY;
-    const assistantId = process.env.ASSISTANT_ID;
+    const assistantId = process.env.OPENAI_ASSISTANT_ID;
 
     if (!accountSid || !authToken || !twilioPhoneNumber || !openaiApiKey || !assistantId) {
       console.error('Missing credentials:', { 
