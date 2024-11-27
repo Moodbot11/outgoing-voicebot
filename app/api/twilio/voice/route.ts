@@ -32,10 +32,10 @@ export async function POST(req: Request) {
       threadId = thread.id;
       console.log('Created new thread:', threadId);
       
-      // Add an initial system message to set the context
+      // Add an initial message to set the context
       await openai.beta.threads.messages.create(threadId, {
-        role: 'system',
-        content: 'You are a helpful AI assistant in a phone conversation. Provide concise, relevant responses to each user input. Maintain context throughout the conversation.',
+        role: 'user',
+        content: 'This is the start of a phone conversation. You are a helpful AI assistant. Please provide concise, relevant responses to each user input and maintain context throughout the conversation.',
       });
       
       twiml.say({ voice: 'Polly.Amy' }, 'Hello! How can I help you today?');
