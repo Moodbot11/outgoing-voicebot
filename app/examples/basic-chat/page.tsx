@@ -8,25 +8,41 @@ const Home = () => {
   const [messages, setMessages] = useState([]);
   const [inputDisabled, setInputDisabled] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const userInput = e.target.userInput.value;
     if (userInput.trim()) {
-      setMessages([...messages, { role: "user", content: userInput }]);
-      // Here you would typically send the message to your API
-      // For now, we'll just echo the message back
-      setTimeout(() => {
-        setMessages(prevMessages => [...prevMessages, { role: "assistant", content: `You said: ${userInput}` }]);
-      }, 1000);
+      setInputDisabled(true);
+      setMessages(prevMessages => [...prevMessages, { role: "user", content: userInput }]);
+
+      try {
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages: [...messages, { role: "user", content: userInput }] }),
+        });
+
+        if (!response.ok) {
+          throw new Error(response.statusText);
+        }
+
+        const data = await response.json();
+        setMessages(prevMessages => [...prevMessages, data.choices[0].message]);
+      } catch (error) {
+        console.error('Error:', error);
+        setMessages(prevMessages => [...prevMessages, { role: "assistant", content: "Sorry, there was an error processing your request." }]);
+      } finally {
+        setInputDisabled(false);
+      }
     }
   };
 
   const functionCallHandler = () => {
-    // Implement if needed for basic chat
+    // Not used in basic chat, but required by Chat component
   };
 
   const onResponse = (response) => {
-    // Implement if needed for basic chat
+    console.log("Assistant response:", response);
   };
 
   return (
