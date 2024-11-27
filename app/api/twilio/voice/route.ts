@@ -1,6 +1,5 @@
 import twilio from 'twilio';
 import OpenAI from 'openai';
-import { textToSpeech, speechToText, getChatCompletion } from '@/lib/openai-utils';
 
 const VoiceResponse = twilio.twiml.VoiceResponse;
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -25,14 +24,7 @@ export async function POST(req: Request) {
   }
 
   const formData = await req.formData();
-  const recordingUrl = formData.get('RecordingUrl')?.toString();
-  let speechResult = '';
-
-  if (recordingUrl) {
-    const audioResponse = await fetch(recordingUrl);
-    const audioBuffer = Buffer.from(await audioResponse.arrayBuffer());
-    speechResult = await speechToText(audioBuffer);
-  }
+  const speechResult = formData.get('SpeechResult')?.toString() || '';
 
   console.log('Received speech:', speechResult);
 
@@ -44,12 +36,10 @@ export async function POST(req: Request) {
       
       await openai.beta.threads.messages.create(threadId, {
         role: 'user',
-        content: 'This is the start of a phone conversation. You are a helpful AI assistant. Please provide concise, relevant responses to each user input and maintain context throughout the conversation. Always respond as if you are speaking directly to the user.',
+        content: 'This is the start of a phone conversation. You are a helpful AI assistant. Please provide concise, relevant responses to each user input and maintain context throughout the conversation.',
       });
       
-      const initialGreeting = 'Hello! How can I help you today?';
-      const audioBuffer = await textToSpeech(initialGreeting);
-      twiml.play({ loop: 1 }, audioBuffer.toString('base64'));
+      twiml.say({ voice: 'Polly.Amy' }, 'Hello! How can I help you today?');
     } else if (speechResult) {
       console.log('Sending message to thread:', threadId);
       await openai.beta.threads.messages.create(threadId, {
@@ -60,7 +50,6 @@ export async function POST(req: Request) {
       console.log('Running assistant');
       const run = await openai.beta.threads.runs.create(threadId, {
         assistant_id: assistantId,
-        instructions: "You are in an ongoing phone conversation. Respond directly to the user's last input while maintaining context from the entire conversation. Keep your responses concise and natural, as if speaking.",
       });
 
       console.log('Waiting for run to complete');
@@ -90,18 +79,17 @@ export async function POST(req: Request) {
       }
 
       console.log('Assistant response:', response);
-      const audioBuffer = await textToSpeech(response);
-      twiml.play({ loop: 1 }, audioBuffer.toString('base64'));
+      twiml.say({ voice: 'Polly.Amy' }, response);
     } else {
       twiml.say({ voice: 'Polly.Amy' }, 'I didn\'t catch that. Could you please repeat?');
     }
 
-    twiml.record({
+    twiml.gather({
+      input: ['speech'],
       action: `https://outgoing-voicebot.vercel.app/api/twilio/voice?threadId=${threadId}`,
       method: 'POST',
-      maxLength: 10,
-      playBeep: true,
-      trim: 'trim-silence'
+      speechTimeout: 'auto',
+      language: 'en-US'
     });
 
     return new Response(twiml.toString(), {
