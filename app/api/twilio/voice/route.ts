@@ -49,7 +49,7 @@ export async function POST(req: Request) {
       
       const initialGreeting = 'Hello! How can I help you today?';
       const audioBuffer = await textToSpeech(initialGreeting);
-      twiml.play({ loop: 1 }, audioBuffer.toString('base64'));
+      twiml.play({ loop: 1 }, Buffer.from(audioBuffer).toString('base64'));
     } else if (speechResult) {
       console.log('Sending message to thread:', threadId);
       await openai.beta.threads.messages.create(threadId, {
@@ -90,7 +90,7 @@ export async function POST(req: Request) {
 
       console.log('Assistant response:', response);
       const audioBuffer = await textToSpeech(response);
-      twiml.play({ loop: 1 }, audioBuffer.toString('base64'));
+      twiml.play({ loop: 1 }, Buffer.from(audioBuffer).toString('base64'));
     } else {
       twiml.say({ voice: 'Polly.Amy' }, 'I didn\'t catch that. Could you please repeat?');
     }
