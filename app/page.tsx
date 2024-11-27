@@ -9,7 +9,6 @@ const Home = () => {
     "Function calling": "function-calling",
     "File search": "file-search",
     All: "all",
-    "Twilio Call": "twilio-call",  // Add this line
   };
 
   return (
@@ -23,6 +22,9 @@ const Home = () => {
             {name}
           </a>
         ))}
+        <a className={styles.category} href="/twilio-call">
+          Twilio Call
+        </a>
       </div>
     </main>
   );
