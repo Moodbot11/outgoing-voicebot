@@ -2,7 +2,7 @@ import twilio from 'twilio';
 import OpenAI from 'openai';
 
 const VoiceResponse = twilio.twiml.VoiceResponse;
-const openai = new OpenAI(process.env.OPENAI_API_KEY!);
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function POST(req: Request) {
   const twiml = new VoiceResponse();
