@@ -10,7 +10,7 @@ export async function POST(req: Request) {
   let threadId = url.searchParams.get('threadId');
 
   // Fetch OpenAI credentials
-  const credentialsResponse = await fetch(`${process.env.VERCEL_URL}/api/get-openai-key`);
+  const credentialsResponse = await fetch(`https://${process.env.VERCEL_URL}/api/get-openai-key`);
   if (!credentialsResponse.ok) {
     console.error('Failed to fetch OpenAI credentials');
     twiml.say({ voice: 'Polly.Amy' }, 'I apologize, but there was an error with the system configuration. Please try again later.');
