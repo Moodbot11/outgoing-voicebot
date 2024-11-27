@@ -1,4 +1,5 @@
 import twilio from 'twilio';
+import OpenAI from 'openai';
 
 export async function POST(req: Request) {
   try {
@@ -9,13 +10,18 @@ export async function POST(req: Request) {
     const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
 
     if (!accountSid || !authToken || !twilioPhoneNumber) {
+      console.error('Missing Twilio credentials:', { accountSid, authToken, twilioPhoneNumber });
       throw new Error('Twilio credentials are not set correctly in environment variables');
     }
 
     const client = twilio(accountSid, authToken);
+    const openai = new OpenAI(process.env.OPENAI_API_KEY!);
+
+    // Create a new thread for this outgoing call
+    const thread = await openai.beta.threads.create();
 
     const call = await client.calls.create({
-      url: `${process.env.VERCEL_URL || 'https://outgoing-voicebot.vercel.app'}/api/twilio/voice`,
+      url: `https://outgoing-voicebot.vercel.app/api/twilio/voice?threadId=${thread.id}`,
       to: phoneNumber,
       from: twilioPhoneNumber
     });

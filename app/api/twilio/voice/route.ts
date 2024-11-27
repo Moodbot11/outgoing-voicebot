@@ -7,19 +7,17 @@ const openai = new OpenAI(process.env.OPENAI_API_KEY!);
 export async function POST(req: Request) {
   const twiml = new VoiceResponse();
   const url = new URL(req.url);
-  const threadId = url.searchParams.get('threadId');
-
-  if (!threadId) {
-    twiml.say('Error: No thread ID provided.');
-    return new Response(twiml.toString(), {
-      headers: { 'Content-Type': 'application/xml' }
-    });
-  }
+  let threadId = url.searchParams.get('threadId');
 
   const formData = await req.formData();
   const speechResult = formData.get('SpeechResult')?.toString() || '';
 
-  if (speechResult) {
+  if (!threadId) {
+    // This is a new call, create a thread
+    const thread = await openai.beta.threads.create();
+    threadId = thread.id;
+    twiml.say({ voice: 'Polly.Amy' }, 'Hello! How can I help you today?');
+  } else if (speechResult) {
     try {
       // Send user's speech to OpenAI assistant
       await openai.beta.threads.messages.create(threadId, {
@@ -51,10 +49,10 @@ export async function POST(req: Request) {
       twiml.say({ voice: 'Polly.Amy' }, response);
     } catch (error) {
       console.error('Error processing OpenAI response:', error);
-      twiml.say('I apologize, but I encountered an error. Please try again later.');
+      twiml.say({ voice: 'Polly.Amy' }, 'I apologize, but I encountered an error. Please try again later.');
     }
   } else {
-    twiml.say('Hello! How can I help you today?');
+    twiml.say({ voice: 'Polly.Amy' }, 'I didn\'t catch that. Could you please repeat?');
   }
 
   // Continue the conversation
