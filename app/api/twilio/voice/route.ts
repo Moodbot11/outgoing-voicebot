@@ -10,6 +10,8 @@ export async function POST(req: Request) {
   let threadId = url.searchParams.get('threadId');
   const assistantId = process.env.OPENAI_ASSISTANT_ID;
 
+  console.log('Request received:', { threadId, url: req.url });
+
   if (!process.env.OPENAI_API_KEY || !assistantId) {
     console.error('Missing OpenAI credentials:', {
       apiKey: process.env.OPENAI_API_KEY ? 'Set' : 'Missing',
@@ -32,7 +34,6 @@ export async function POST(req: Request) {
       threadId = thread.id;
       console.log('Created new thread:', threadId);
       
-      // Add an initial message to set the context
       await openai.beta.threads.messages.create(threadId, {
         role: 'user',
         content: 'This is the start of a phone conversation. You are a helpful AI assistant. Please provide concise, relevant responses to each user input and maintain context throughout the conversation.',
@@ -54,7 +55,7 @@ export async function POST(req: Request) {
       console.log('Waiting for run to complete');
       let runStatus = await openai.beta.threads.runs.retrieve(threadId, run.id);
       let attempts = 0;
-      const maxAttempts = 30; // Increased max attempts
+      const maxAttempts = 30;
       while (runStatus.status !== 'completed' && attempts < maxAttempts) {
         await new Promise(resolve => setTimeout(resolve, 1000));
         runStatus = await openai.beta.threads.runs.retrieve(threadId, run.id);
