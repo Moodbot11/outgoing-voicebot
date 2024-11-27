@@ -31,6 +31,13 @@ export async function POST(req: Request) {
       const thread = await openai.beta.threads.create();
       threadId = thread.id;
       console.log('Created new thread:', threadId);
+      
+      // Add an initial system message to set the context
+      await openai.beta.threads.messages.create(threadId, {
+        role: 'system',
+        content: 'You are a helpful AI assistant in a phone conversation. Provide concise, relevant responses to each user input. Maintain context throughout the conversation.',
+      });
+      
       twiml.say({ voice: 'Polly.Amy' }, 'Hello! How can I help you today?');
     } else if (speechResult) {
       console.log('Sending message to thread:', threadId);
@@ -47,15 +54,16 @@ export async function POST(req: Request) {
       console.log('Waiting for run to complete');
       let runStatus = await openai.beta.threads.runs.retrieve(threadId, run.id);
       let attempts = 0;
-      const maxAttempts = 10;
+      const maxAttempts = 30; // Increased max attempts
       while (runStatus.status !== 'completed' && attempts < maxAttempts) {
         await new Promise(resolve => setTimeout(resolve, 1000));
         runStatus = await openai.beta.threads.runs.retrieve(threadId, run.id);
         attempts++;
+        console.log(`Attempt ${attempts}: Run status - ${runStatus.status}`);
       }
 
       if (runStatus.status !== 'completed') {
-        throw new Error('Assistant run timed out');
+        throw new Error(`Assistant run timed out or failed. Final status: ${runStatus.status}`);
       }
 
       console.log('Retrieving assistant response');
