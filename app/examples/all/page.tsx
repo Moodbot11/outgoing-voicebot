@@ -12,6 +12,8 @@ import { Mic, MicOff } from 'lucide-react';
 const FunctionCalling = () => {
   const [weatherData, setWeatherData] = useState({});
   const [isListening, setIsListening] = useState(false);
+  const [messages, setMessages] = useState([]); // Added state for messages
+  const [inputDisabled, setInputDisabled] = useState(false); // Added state for input disable
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -28,6 +30,14 @@ const FunctionCalling = () => {
     return JSON.stringify(data);
   };
 
+  const handleSubmit = async (userInput: string) => {
+    setInputDisabled(true); // Disable input while processing
+    setMessages([...messages, { role: "user", content: userInput }]);
+    // ... (Your existing logic to handle user input and update messages) ...
+    setInputDisabled(false); // Re-enable input after processing
+  };
+
+
   const handleVoiceInput = async () => {
     setIsListening(true);
     try {
@@ -43,8 +53,7 @@ const FunctionCalling = () => {
         const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
         const audioBuffer = await audioBlob.arrayBuffer();
         const userInput = await speechToText(Buffer.from(audioBuffer));
-        // Pass the transcribed text to the Chat component
-        // You'll need to modify the Chat component to accept and process this input
+        handleSubmit(userInput); // Pass transcribed text to handleSubmit
       });
 
       mediaRecorder.start();
@@ -75,6 +84,9 @@ const FunctionCalling = () => {
         <div className={styles.chatContainer}>
           <div className={styles.chat}>
             <Chat 
+              messages={messages} 
+              handleSubmit={handleSubmit} 
+              inputDisabled={inputDisabled}
               functionCallHandler={functionCallHandler} 
               onResponse={speakResponse}
             />

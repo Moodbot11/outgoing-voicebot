@@ -11,7 +11,7 @@ const Message = ({ role, text }) => {
   );
 };
 
-const Chat = ({ messages, handleSubmit, inputDisabled }) => {
+const Chat = ({ messages, handleSubmit, inputDisabled, functionCallHandler, onResponse }) => {
   const [userInput, setUserInput] = useState('');
   const [isListening, setIsListening] = useState(false);
   const messagesEndRef = useRef(null);
@@ -91,6 +91,11 @@ const Chat = ({ messages, handleSubmit, inputDisabled }) => {
       </form>
     </div>
   );
+};
+
+Chat.defaultProps = {
+  functionCallHandler: () => {},
+  onResponse: () => {},
 };
 
 export default Chat;
