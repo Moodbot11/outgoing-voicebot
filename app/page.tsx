@@ -9,6 +9,7 @@ const Home = () => {
     "Function calling": "function-calling",
     "File search": "file-search",
     All: "all",
+    "Twilio Call": "twilio-call",  // Add this line
   };
 
   return (
@@ -28,3 +29,4 @@ const Home = () => {
 };
 
 export default Home;
+
