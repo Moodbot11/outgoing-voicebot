@@ -29,7 +29,7 @@ export async function POST(req: Request) {
     const thread = await openai.beta.threads.create();
 
     const call = await client.calls.create({
-      url: `https://outgoing-voicebot.vercel.app/api/twilio/voice?threadId=${thread.id}&assistantId=${assistantId}`,
+      url: `https://outgoing-voicebot.vercel.app/api/twilio/voice?threadId=${thread.id}`,
       to: phoneNumber,
       from: twilioPhoneNumber
     });

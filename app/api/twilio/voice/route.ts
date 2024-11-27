@@ -11,7 +11,10 @@ export async function POST(req: Request) {
   const assistantId = process.env.ASSISTANT_ID;
 
   if (!process.env.OPENAI_API_KEY || !assistantId) {
-    console.error('Missing OpenAI credentials');
+    console.error('Missing OpenAI credentials:', {
+      apiKey: process.env.OPENAI_API_KEY ? 'Set' : 'Missing',
+      assistantId: assistantId ? 'Set' : 'Missing'
+    });
     twiml.say({ voice: 'Polly.Amy' }, 'I apologize, but there was an error with the system configuration. Please try again later.');
     return new Response(twiml.toString(), {
       headers: { 'Content-Type': 'application/xml' }
@@ -23,22 +26,14 @@ export async function POST(req: Request) {
 
   console.log('Received speech:', speechResult);
 
-  if (!threadId) {
-    try {
+  try {
+    if (!threadId) {
       const thread = await openai.beta.threads.create();
       threadId = thread.id;
       console.log('Created new thread:', threadId);
-    } catch (error) {
-      console.error('Error creating thread:', error);
-      twiml.say({ voice: 'Polly.Amy' }, 'I apologize, but I encountered an error. Please try again later.');
-      return new Response(twiml.toString(), {
-        headers: { 'Content-Type': 'application/xml' }
-      });
     }
-  }
 
-  if (speechResult) {
-    try {
+    if (speechResult) {
       console.log('Sending message to thread:', threadId);
       await openai.beta.threads.messages.create(threadId, {
         role: 'user',
@@ -70,24 +65,27 @@ export async function POST(req: Request) {
 
       console.log('Assistant response:', response);
       twiml.say({ voice: 'Polly.Amy' }, response);
-    } catch (error) {
-      console.error('Error processing OpenAI response:', error);
-      twiml.say({ voice: 'Polly.Amy' }, 'I apologize, but I encountered an error. Please try again later.');
+    } else {
+      twiml.say({ voice: 'Polly.Amy' }, 'Hello! How can I help you today?');
     }
-  } else {
-    twiml.say({ voice: 'Polly.Amy' }, 'Hello! How can I help you today?');
+
+    twiml.gather({
+      input: ['speech'],
+      action: `https://outgoing-voicebot.vercel.app/api/twilio/voice?threadId=${threadId}`,
+      method: 'POST',
+      speechTimeout: 'auto',
+      language: 'en-US'
+    });
+
+    return new Response(twiml.toString(), {
+      headers: { 'Content-Type': 'application/xml' }
+    });
+  } catch (error) {
+    console.error('Error in voice route:', error);
+    twiml.say({ voice: 'Polly.Amy' }, 'I apologize, but I encountered an error. Please try again later.');
+    return new Response(twiml.toString(), {
+      headers: { 'Content-Type': 'application/xml' }
+    });
   }
-
-  twiml.gather({
-    input: ['speech'],
-    action: `https://outgoing-voicebot.vercel.app/api/twilio/voice?threadId=${threadId}`,
-    method: 'POST',
-    speechTimeout: 'auto',
-    language: 'en-US'
-  });
-
-  return new Response(twiml.toString(), {
-    headers: { 'Content-Type': 'application/xml' }
-  });
 }
 
