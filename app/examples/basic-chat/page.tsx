@@ -3,7 +3,9 @@
 import React, { useState, useRef, useEffect } from "react";
 import styles from "./page.module.css";
 import { Mic, MicOff, Send } from 'lucide-react';
-import { speechToText, getChatCompletion } from "../../utils/openai-utils";
+import OpenAI from "openai";
+
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const Home = () => {
   const [messages, setMessages] = useState([]);
@@ -30,11 +32,13 @@ const Home = () => {
     setMessages(prevMessages => [...prevMessages, userMessage]);
 
     try {
-      const allMessages = [...messages, userMessage];
-      const assistantResponse = await getChatCompletion(allMessages);
-      const assistantMessage = { role: "assistant", content: assistantResponse };
+      const completion = await openai.chat.completions.create({
+        model: "gpt-3.5-turbo",
+        messages: [...messages, userMessage],
+      });
+
+      const assistantMessage = completion.choices[0].message;
       setMessages(prevMessages => [...prevMessages, assistantMessage]);
-      onResponse(assistantResponse);
     } catch (error) {
       console.error('Error:', error);
       setMessages(prevMessages => [...prevMessages, { role: "assistant", content: "Sorry, there was an error processing your request." }]);
@@ -42,10 +46,6 @@ const Home = () => {
       setInputDisabled(false);
       scrollToBottom();
     }
-  };
-
-  const onResponse = (response) => {
-    console.log("Assistant response:", response);
   };
 
   const handleVoiceInput = async () => {
@@ -61,9 +61,16 @@ const Home = () => {
 
       mediaRecorder.addEventListener("stop", async () => {
         const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-        const audioBuffer = await audioBlob.arrayBuffer();
-        const transcribedInput = await speechToText(Buffer.from(audioBuffer));
-        await processUserInput(transcribedInput);
+        const formData = new FormData();
+        formData.append("file", audioBlob, "audio.wav");
+        formData.append("model", "whisper-1");
+
+        const transcription = await openai.audio.transcriptions.create({
+          file: audioBlob,
+          model: "whisper-1",
+        });
+
+        await processUserInput(transcription.text);
       });
 
       mediaRecorder.start();
