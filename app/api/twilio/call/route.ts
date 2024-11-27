@@ -8,20 +8,22 @@ export async function POST(req: Request) {
     const accountSid = process.env.TWILIO_ACCOUNT_SID;
     const authToken = process.env.TWILIO_AUTH_TOKEN;
     const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
+    const openaiApiKey = process.env.OPENAI_API_KEY;
+    const assistantId = process.env.ASSISTANT_ID;
 
-    if (!accountSid || !authToken || !twilioPhoneNumber) {
-      console.error('Missing Twilio credentials:', { accountSid, authToken, twilioPhoneNumber });
-      throw new Error('Twilio credentials are not set correctly in environment variables');
+    if (!accountSid || !authToken || !twilioPhoneNumber || !openaiApiKey || !assistantId) {
+      console.error('Missing credentials:', { accountSid, authToken, twilioPhoneNumber, openaiApiKey, assistantId });
+      throw new Error('Credentials are not set correctly in environment variables');
     }
 
     const client = twilio(accountSid, authToken);
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const openai = new OpenAI({ apiKey: openaiApiKey });
 
     // Create a new thread for this outgoing call
     const thread = await openai.beta.threads.create();
 
     const call = await client.calls.create({
-      url: `https://outgoing-voicebot.vercel.app/api/twilio/voice?threadId=${thread.id}`,
+      url: `https://outgoing-voicebot.vercel.app/api/twilio/voice?threadId=${thread.id}&assistantId=${assistantId}`,
       to: phoneNumber,
       from: twilioPhoneNumber
     });
@@ -30,7 +32,7 @@ export async function POST(req: Request) {
     return Response.json({ success: true, callSid: call.sid });
   } catch (error) {
     console.error('Error in /api/twilio/call:', error);
-    return Response.json({ success: false, error: error.message }, { status: 500 });
+    return Response.json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 }
 
