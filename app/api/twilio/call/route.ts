@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     }
 
     const client = twilio(accountSid, authToken);
-    const openai = new OpenAI(process.env.OPENAI_API_KEY!);
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
     // Create a new thread for this outgoing call
     const thread = await openai.beta.threads.create();
