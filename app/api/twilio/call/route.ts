@@ -12,7 +12,13 @@ export async function POST(req: Request) {
     const assistantId = process.env.ASSISTANT_ID;
 
     if (!accountSid || !authToken || !twilioPhoneNumber || !openaiApiKey || !assistantId) {
-      console.error('Missing credentials:', { accountSid, authToken, twilioPhoneNumber, openaiApiKey, assistantId });
+      console.error('Missing credentials:', { 
+        accountSid: accountSid ? 'Set' : 'Missing',
+        authToken: authToken ? 'Set' : 'Missing',
+        twilioPhoneNumber: twilioPhoneNumber ? 'Set' : 'Missing',
+        openaiApiKey: openaiApiKey ? 'Set' : 'Missing',
+        assistantId: assistantId ? 'Set' : 'Missing'
+      });
       throw new Error('Credentials are not set correctly in environment variables');
     }
 

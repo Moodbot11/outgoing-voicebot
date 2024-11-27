@@ -8,14 +8,22 @@ export async function POST(req: Request) {
   const twiml = new VoiceResponse();
   const url = new URL(req.url);
   let threadId = url.searchParams.get('threadId');
+  const assistantId = process.env.ASSISTANT_ID;
+
+  if (!process.env.OPENAI_API_KEY || !assistantId) {
+    console.error('Missing OpenAI credentials');
+    twiml.say({ voice: 'Polly.Amy' }, 'I apologize, but there was an error with the system configuration. Please try again later.');
+    return new Response(twiml.toString(), {
+      headers: { 'Content-Type': 'application/xml' }
+    });
+  }
 
   const formData = await req.formData();
   const speechResult = formData.get('SpeechResult')?.toString() || '';
 
-  console.log('Received speech:', speechResult); // Log received speech
+  console.log('Received speech:', speechResult);
 
   if (!threadId) {
-    // This is a new call, create a thread
     try {
       const thread = await openai.beta.threads.create();
       threadId = thread.id;
@@ -32,20 +40,17 @@ export async function POST(req: Request) {
   if (speechResult) {
     try {
       console.log('Sending message to thread:', threadId);
-      // Send user's speech to OpenAI assistant
       await openai.beta.threads.messages.create(threadId, {
         role: 'user',
         content: speechResult,
       });
 
       console.log('Running assistant');
-      // Run the assistant
       const run = await openai.beta.threads.runs.create(threadId, {
-        assistant_id: process.env.ASSISTANT_ID!,
+        assistant_id: assistantId,
       });
 
       console.log('Waiting for run to complete');
-      // Wait for the run to complete
       let runStatus = await openai.beta.threads.runs.retrieve(threadId, run.id);
       while (runStatus.status !== 'completed') {
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -53,7 +58,6 @@ export async function POST(req: Request) {
       }
 
       console.log('Retrieving assistant response');
-      // Retrieve the assistant's response
       const messages = await openai.beta.threads.messages.list(threadId);
       const lastMessage = messages.data
         .filter(message => message.role === 'assistant')
@@ -65,8 +69,6 @@ export async function POST(req: Request) {
       }
 
       console.log('Assistant response:', response);
-
-      // Convert the assistant's response to speech
       twiml.say({ voice: 'Polly.Amy' }, response);
     } catch (error) {
       console.error('Error processing OpenAI response:', error);
@@ -76,7 +78,6 @@ export async function POST(req: Request) {
     twiml.say({ voice: 'Polly.Amy' }, 'Hello! How can I help you today?');
   }
 
-  // Continue the conversation
   twiml.gather({
     input: ['speech'],
     action: `https://outgoing-voicebot.vercel.app/api/twilio/voice?threadId=${threadId}`,
