@@ -15,6 +15,8 @@ interface WeatherData {
 
 const FunctionCalling = () => {
   const [weatherData, setWeatherData] = useState<WeatherData>({});
+  const [messages, setMessages] = useState([]);
+  const [inputDisabled, setInputDisabled] = useState(false);
   const isEmpty = Object.keys(weatherData).length === 0;
 
   const functionCallHandler = async (call: RequiredActionFunctionToolCall) => {
@@ -23,6 +25,26 @@ const FunctionCalling = () => {
     const data = getWeather(args.location);
     setWeatherData(data);
     return JSON.stringify(data);
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const userInput = e.target.userInput.value;
+    if (userInput.trim()) {
+      setMessages([...messages, { role: "user", content: userInput }]);
+      setInputDisabled(true);
+      // Simulate API call
+      setTimeout(() => {
+        setMessages(prevMessages => [...prevMessages, { role: "assistant", content: `Processing your request: ${userInput}` }]);
+        setInputDisabled(false);
+      }, 1000);
+    }
+  };
+
+  const onResponse = (response) => {
+    // Handle the response from the assistant
+    console.log("Assistant response:", response);
+    setMessages(prevMessages => [...prevMessages, { role: "assistant", content: response }]);
   };
 
   return (
@@ -38,7 +60,13 @@ const FunctionCalling = () => {
         </div>
         <div className={styles.chatContainer}>
           <div className={styles.chat}>
-            <Chat functionCallHandler={functionCallHandler} />
+            <Chat 
+              messages={messages}
+              handleSubmit={handleSubmit}
+              inputDisabled={inputDisabled}
+              functionCallHandler={functionCallHandler}
+              onResponse={onResponse}
+            />
           </div>
         </div>
       </div>
@@ -47,3 +75,4 @@ const FunctionCalling = () => {
 };
 
 export default FunctionCalling;
+
