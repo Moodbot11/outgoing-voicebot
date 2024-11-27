@@ -61,8 +61,15 @@ const Home = () => {
       const messages = await openai.beta.threads.messages.list(threadRef.current.id);
       const assistantMessage = messages.data.find(message => message.role === "assistant");
 
-      if (assistantMessage && assistantMessage.content[0].type === 'text') {
-        setMessages(prevMessages => [...prevMessages, { role: "assistant", content: assistantMessage.content[0].text.value }]);
+      if (assistantMessage) {
+        const messageContent = assistantMessage.content.reduce((acc, content) => {
+          if (content.type === 'text') {
+            return acc + content.text.value;
+          }
+          return acc;
+        }, '');
+
+        setMessages(prevMessages => [...prevMessages, { role: "assistant", content: messageContent }]);
       }
     } catch (error) {
       console.error('Error:', error);
@@ -161,4 +168,3 @@ const Home = () => {
 };
 
 export default Home;
-
