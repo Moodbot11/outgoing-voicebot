@@ -1,8 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
-import styles from './Chat.module.css';
-import Message from './Message';
-import Mic from './icons/Mic';
-import MicOff from './icons/MicOff';
+import styles from '../app/page.module.css';
+import { Mic, MicOff } from 'lucide-react';
+import { speechToText } from "../utils/openai-utils";
+
+const Message = ({ role, text }) => {
+  return (
+    <div className={`${styles.message} ${styles[role]}`}>
+      {text}
+    </div>
+  );
+};
 
 const Chat = ({ messages, handleSubmit, handleVoiceInput, inputDisabled, isListening }) => {
   const [userInput, setUserInput] = useState('');
