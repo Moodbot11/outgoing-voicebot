@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import styles from "./page.module.css";
 import { Mic, MicOff, Send } from 'lucide-react';
-import { speechToText } from "../../utils/openai-utils";
+import { speechToText, getChatCompletion } from "../../utils/openai-utils";
 
 const Home = () => {
   const [messages, setMessages] = useState([]);
@@ -11,6 +11,10 @@ const Home = () => {
   const [isListening, setIsListening] = useState(false);
   const [userInput, setUserInput] = useState("");
   const chatContainerRef = useRef(null);
+
+  useEffect(() => {
+    console.log("Component mounted");
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,22 +26,15 @@ const Home = () => {
 
   const processUserInput = async (input) => {
     setInputDisabled(true);
-    setMessages(prevMessages => [...prevMessages, { role: "user", content: input }]);
+    const userMessage = { role: "user", content: input };
+    setMessages(prevMessages => [...prevMessages, userMessage]);
 
     try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: [...messages, { role: "user", content: input }] }),
-      });
-
-      if (!response.ok) {
-        throw new Error(response.statusText);
-      }
-
-      const data = await response.json();
-      setMessages(prevMessages => [...prevMessages, data.choices[0].message]);
-      onResponse(data.choices[0].message.content);
+      const allMessages = [...messages, userMessage];
+      const assistantResponse = await getChatCompletion(allMessages);
+      const assistantMessage = { role: "assistant", content: assistantResponse };
+      setMessages(prevMessages => [...prevMessages, assistantMessage]);
+      onResponse(assistantResponse);
     } catch (error) {
       console.error('Error:', error);
       setMessages(prevMessages => [...prevMessages, { role: "assistant", content: "Sorry, there was an error processing your request." }]);
@@ -49,7 +46,6 @@ const Home = () => {
 
   const onResponse = (response) => {
     console.log("Assistant response:", response);
-    // Here you could add text-to-speech functionality if desired
   };
 
   const handleVoiceInput = async () => {
@@ -97,7 +93,7 @@ const Home = () => {
               </div>
             ))}
           </div>
-          <div className={styles.inputContainer}>
+          <form onSubmit={handleSubmit} className={styles.inputContainer}>
             <input
               type="text"
               value={userInput}
@@ -107,20 +103,21 @@ const Home = () => {
               className={styles.textInput}
             />
             <button 
-              onClick={handleSubmit}
+              type="submit"
               disabled={inputDisabled || !userInput.trim()}
               className={styles.sendButton}
             >
               <Send size={20} />
             </button>
             <button 
+              type="button"
               onClick={handleVoiceInput} 
               disabled={isListening || inputDisabled}
               className={styles.voiceButton}
             >
               {isListening ? <MicOff size={20} /> : <Mic size={20} />}
             </button>
-          </div>
+          </form>
         </div>
       </div>
     </main>
